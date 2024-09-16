@@ -25,6 +25,7 @@ OUTPUT_DIR = "data"
 OUTPUT_FILENAME = f"deepstatemap_data_{datetime.now().strftime('%Y%m%d')}.geojson"
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
+EXPORT_RAW = True
 
 
 def make_api_request():
@@ -108,16 +109,40 @@ def main():
     logger.info("Processing data...")
     processed_data = process_data(raw_data)
     
-    # Create GeoDataFrame
-    logger.info("Creating GeoDataFrame...")
-    gdf = create_geodataframe(processed_data)
-    
-    # Export as GeoJSON
-    output_path = os.path.join(OUTPUT_DIR, OUTPUT_FILENAME)
-    logger.info(f"Exporting data to {output_path}...")
-    gdf.to_file(output_path, driver="GeoJSON")
-    
-    logger.info("Data update completed successfully.")
+    if EXPORT_RAW:
+        # Create points GeoDataFrame
+        logger.info("Creating points GeoDataFrame")
+        raw_gdf = gpd.GeoDataFrame(processed_data).set_crs(4326)
+        mask = raw_gdf.geometry.apply(lambda x: isinstance(x, Point))
+        points_gdf = raw_gdf[mask]
+        
+        # Create polygons GeoDataFrame
+        logger.info("Creating polygons GeoDataFrame")
+        mask = raw_gdf.geometry.apply(lambda x: isinstance(x, Polygon))
+        polygons_gdf = raw_gdf[mask]
+        
+        # Export as GeoJSON
+        output_path = os.path.join(OUTPUT_DIR, f"{OUTPUT_FILENAME.split('.')[0]}_points.{OUTPUT_FILENAME.split('.')[1]}")
+        logger.info(f"Exporting data to {output_path}...")
+        points_gdf.to_file(output_path, driver="GeoJSON")
+        
+        output_path = os.path.join(OUTPUT_DIR, f"{OUTPUT_FILENAME.split('.')[0]}_polygons.{OUTPUT_FILENAME.split('.')[1]}")
+        logger.info(f"Exporting data to {output_path}...")
+        polygons_gdf.to_file(output_path, driver="GeoJSON")
+        
+        logger.info("Data update completed successfully.")
+        
+    else:
+        # Create GeoDataFrame
+        logger.info("Creating GeoDataFrame...")
+        gdf = create_geodataframe(processed_data)
+        
+        # Export as GeoJSON
+        output_path = os.path.join(OUTPUT_DIR, OUTPUT_FILENAME)
+        logger.info(f"Exporting data to {output_path}...")
+        gdf.to_file(output_path, driver="GeoJSON")
+        
+        logger.info("Data update completed successfully.")
 
 if __name__ == "__main__":
     main()
