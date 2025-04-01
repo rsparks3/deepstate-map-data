@@ -65,7 +65,11 @@ def process_data(data):
         
     # Split the name by '///' and take the first part
     def extract_first_part(name, part=0):
-        first_part = name.split('///')[part].strip()
+        try:
+            first_part = name.split('///')[part].strip()
+        except IndexError:
+            print(f"problem processing status {name}")
+            first_part = "Unknown"
         return first_part
     
     for item in geo_list:
